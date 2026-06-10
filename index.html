@@ -1,1 +1,876 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Smart CBSE Learning Hub | Class 1-6 Interactive Education</title>
+  <meta name="description" content="Free interactive CBSE learning platform for Class 1-6. Quizzes, games, flashcards, worksheets for Maths, Science, English, Hindi, EVS and more." />
+  <meta name="keywords" content="CBSE learning, Class 1-6, online quiz, maths worksheet, science for kids, Hindi learning, EVS, interactive education India" />
+  <meta property="og:title" content="Smart CBSE Learning Hub" />
+  <meta property="og:description" content="Interactive CBSE learning for Class 1-6 with quizzes, games and more." />
+  <meta property="og:type" content="website" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@700;800&family=Nunito:wght@600;700;800;900&family=Bubblegum+Sans&display=swap" rel="stylesheet" />
+  <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+  <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: 'Nunito', sans-serif; min-height: 100vh; overflow-x: hidden; }
+    @keyframes cbsefall {
+      0%   { opacity:1; transform: translateY(-10px) rotate(0deg); }
+      100% { opacity:0; transform: translateY(105vh) rotate(720deg); }
+    }
+  </style>
+</head>
+<body>
+  <div id="root"></div>
 
+  <script type="text/babel">
+    const { useState, useEffect, useRef, useCallback } = React;
+
+    const getGroup = (c) => c <= 2 ? "early" : c <= 4 ? "mid" : "upper";
+
+    const THEMES = {
+      early: { bg:"#fffbef", primary:"#ff6b35", sec:"#ffd93d", text:"#2d1b00", mascot:"🦁", label:"Junior Explorer" },
+      mid:   { bg:"#f0f4ff", primary:"#6c63ff", sec:"#ff9f43", text:"#1e1b4b", mascot:"🚀", label:"Adventure Learner" },
+      upper: { bg:"#f8fafc", primary:"#1e40af", sec:"#059669", text:"#0f172a", mascot:"🎓", label:"Scholar" },
+    };
+
+    const QUIZ = {
+      early: [
+        { q:"🍎🍎🍎 How many apples?", o:["2","3"], a:1 },
+        { q:"1 + 1 = ?",               o:["2","3"], a:0 },
+        { q:"Which is BIGGER?",         o:["5","3"], a:0 },
+      ],
+      mid: [
+        { q:"12 × 5 = ?",                            o:["50","60","55","65"],                      a:1, h:"10×5=50, then add 2×5" },
+        { q:"Plants absorb ___ for photosynthesis?",  o:["O₂","N₂","CO₂","H₂"],                    a:2, h:"Gas we breathe out!" },
+        { q:"Capital of Rajasthan?",                  o:["Jodhpur","Jaipur","Udaipur","Ajmer"],     a:1, h:"The Pink City" },
+        { q:"LCM of 4 and 6?",                        o:["8","10","12","24"],                       a:2, h:"List multiples of each" },
+      ],
+      upper: [
+        { q:"Train travels 450 km in 5 hrs. Speed = ?", o:["80 km/h","90 km/h","85 km/h","95 km/h"], a:1, e:"Speed = 450÷5 = 90 km/h" },
+        { q:"30% of a number = 90. Number = ?",         o:["270","300","250","280"],                  a:1, e:"90 × (100/30) = 300" },
+        { q:"Area of triangle: base=12, height=8?",     o:["96cm²","48cm²","24cm²","60cm²"],          a:1, e:"½ × 12 × 8 = 48 cm²" },
+        { q:"Which vitamin is made by sunlight?",       o:["A","B12","C","D"],                        a:3, e:"UVB rays trigger Vitamin D in skin." },
+        { q:"Newton's 3rd Law:",                        o:["F=ma","E conserved","Equal & opposite reaction","Inertia"], a:2, e:"Every action has an equal & opposite reaction." },
+      ],
+    };
+
+    const SCRAMBLES = [
+      { w:"SCIENCE",  h:"Study of the natural world 🔬" },
+      { w:"FRACTION", h:"Part of a whole number 🍕" },
+      { w:"GRAVITY",  h:"Force that pulls us down 🍏" },
+      { w:"TRIANGLE", h:"Shape with 3 corners 🔺" },
+    ];
+
+    const FILL = [
+      { s:"Plants make food using ___ from the Sun.", a:"sunlight", h:"From the sky ☀️" },
+      { s:"Water boils at ___ degrees Celsius.",      a:"100",      h:"Very hot!" },
+      { s:"A triangle has ___ sides.",                a:"three",    h:"Count its corners!" },
+      { s:"The capital of India is ___.",             a:"Delhi",    h:"Also called New Delhi" },
+    ];
+
+    const FLASH = {
+      mid: [
+        { q:"What is photosynthesis?",  a:"Plants make food using sunlight, CO₂ and water." },
+        { q:"LCM stands for?",          a:"Least Common Multiple" },
+        { q:"3 states of matter?",      a:"Solid, Liquid, Gas 🧊💧💨" },
+      ],
+      upper: [
+        { q:"Newton's First Law?",  a:"Object at rest stays at rest; in motion stays in motion unless external force acts." },
+        { q:"Ohm's Law?",           a:"V = IR  (Voltage = Current × Resistance)" },
+        { q:"Osmosis?",             a:"Water moves from high to low concentration through a semi-permeable membrane." },
+      ],
+    };
+
+    const MATCHING = [
+      [["🍎","Apple"],["🐝","Bee"],["🐱","Cat"],["🐶","Dog"]],
+      [["1️⃣","One"],["2️⃣","Two"],["3️⃣","Three"],["4️⃣","Four"]],
+    ];
+
+    const SUBJECTS = {
+      Mathematics:"📐", English:"📖", Hindi:"📜", EVS:"🌿",
+      Science:"🔬", "Social Science":"🌍", "Computer Basics":"💻", "General Knowledge":"🧠"
+    };
+
+    const CHAPTERS = {
+      Mathematics:["Numbers","Addition","Multiplication","Division","Fractions","Geometry","Measurement","Data"],
+      English:["Phonics","Comprehension","Grammar","Vocabulary","Writing","Poetry","Letters","Punctuation"],
+      Hindi:["वर्णमाला","शब्द","वाक्य","पठन","लेखन","व्याकरण","कविता","निबंध"],
+      EVS:["My Family","Plants","Animals","Water","Weather","Our Earth","Transport","Food"],
+      Science:["Living Things","Plants","Animals","Human Body","Food","Materials","Light","Motion"],
+      "Social Science":["Neighbourhood","Maps","Our India","Festivals","History","Government","Transport","Resources"],
+      "Computer Basics":["Intro","Parts","I/O","Paint","Word","Internet","Keyboard","Safety"],
+      "General Knowledge":["Personalities","Symbols","Sports","Facts","Geography","Current Affairs","Art","Inventions"],
+    };
+
+    const BADGES_DEF = [
+      { id:"first",   icon:"👣", name:"First Step",  desc:"Complete first activity" },
+      { id:"perfect", icon:"⭐", name:"Gold Star",   desc:"100% on a quiz" },
+      { id:"explorer",icon:"🗺️", name:"Explorer",    desc:"Visit 5 subjects" },
+      { id:"xp50",    icon:"💎", name:"XP Gem",      desc:"Earn 50 XP" },
+      { id:"xp200",   icon:"🏆", name:"Champion",    desc:"Earn 200 XP" },
+      { id:"wordwiz", icon:"🔤", name:"Word Wizard", desc:"Solve a word scramble" },
+      { id:"scholar", icon:"🎓", name:"Scholar",     desc:"10 activities done" },
+      { id:"streak",  icon:"🔥", name:"On Fire!",    desc:"3-day streak" },
+    ];
+
+    const AVATARS = ["🦁","🐯","🐼","🦊","🐸","🦄","🐧","🦋","🐬","🦅"];
+
+    // ── Confetti ──
+    function Confetti({ on }) {
+      if (!on) return null;
+      const pieces = Array.from({ length: 48 }, (_, i) => ({
+        id:i, color:["#6c63ff","#fcd34d","#22c55e","#f97316","#ec4899","#3b82f6"][i%6],
+        left:Math.random()*100, dur:1.6+Math.random()*1.4, dl:Math.random()*.7,
+      }));
+      return (
+        <div style={{position:"fixed",inset:0,pointerEvents:"none",zIndex:9999,overflow:"hidden"}}>
+          {pieces.map(p=>(
+            <div key={p.id} style={{position:"absolute",width:9,height:12,borderRadius:2,
+              background:p.color,left:`${p.left}%`,
+              animation:`cbsefall ${p.dur}s ${p.dl}s ease-in forwards`}}/>
+          ))}
+        </div>
+      );
+    }
+
+    // ── Toasts ──
+    function useToasts() {
+      const [list, setList] = useState([]);
+      const add = useCallback((msg, icon="✨") => {
+        const id = Date.now()+Math.random();
+        setList(l=>[...l,{id,msg,icon}]);
+        setTimeout(()=>setList(l=>l.filter(x=>x.id!==id)),2600);
+      },[]);
+      return { list, add };
+    }
+
+    // ── Back Button ──
+    function BackBtn({ onClick, label="Back", color="#64748b", hoverColor }) {
+      const [hov, setHov] = useState(false);
+      return (
+        <button onClick={onClick}
+          onMouseOver={()=>setHov(true)} onMouseOut={()=>setHov(false)}
+          style={{display:"inline-flex",alignItems:"center",gap:6,background:"#fff",
+            border:`1.5px solid ${hov?(hoverColor||"#6c63ff"):"#e2e8f0"}`,borderRadius:12,
+            padding:"8px 16px",fontFamily:"Nunito,sans-serif",fontWeight:800,cursor:"pointer",
+            fontSize:13,color:hov?(hoverColor||"#6c63ff"):color,marginBottom:18,
+            transition:"all .2s",boxShadow:"0 1px 4px rgba(0,0,0,.06)"}}>
+          <span style={{fontSize:16}}>‹</span> {label}
+        </button>
+      );
+    }
+
+    // ── Matching Game (Early) ──
+    function MatchingGame({ theme, onXP }) {
+      const data = MATCHING[0];
+      const [lefts]  = useState(()=>data.map(([l])=>l));
+      const [rights] = useState(()=>[...data.map(([,r])=>r)].sort(()=>Math.random()-.5));
+      const [selL,setSelL]=useState(null);
+      const [selR,setSelR]=useState(null);
+      const [matched,setMatched]=useState(new Set());
+      const [wrongPair,setWrongPair]=useState(null);
+
+      useEffect(()=>{
+        if(selL==null||selR==null)return;
+        const pair=data.find(([l])=>l===lefts[selL]);
+        if(pair&&pair[1]===rights[selR]){
+          setMatched(m=>{const n=new Set(m);n.add(selL+"L");n.add(selR+"R");return n;});
+          setSelL(null);setSelR(null);onXP(8);
+        } else {
+          setWrongPair([selL,selR]);
+          setTimeout(()=>{setSelL(null);setSelR(null);setWrongPair(null);},700);
+        }
+      },[selL,selR]);
+
+      const allDone=matched.size===data.length*2;
+      if(allDone) return(
+        <div style={{textAlign:"center",padding:28}}>
+          <div style={{fontSize:60}}>🎉</div>
+          <div style={{fontFamily:"'Bubblegum Sans',cursive",fontSize:26,color:theme.primary,marginTop:8}}>All Matched! Amazing!</div>
+        </div>
+      );
+
+      const getStyle=(cls)=>({
+        background:cls==="matched"?"#d1fae5":cls==="selected"?"#fff0d0":cls==="wrong"?"#fee2e2":"#fff8f0",
+        border:`3px solid ${cls==="matched"?"#22c55e":cls==="selected"?theme.primary:cls==="wrong"?"#ef4444":"#ffd93d"}`,
+        borderRadius:18,padding:14,textAlign:"center",cursor:cls==="matched"?"default":"pointer",
+        fontFamily:"'Bubblegum Sans',cursive",fontSize:22,transition:"all .2s",
+        transform:cls==="selected"?"scale(1.06)":"scale(1)",
+      });
+
+      return(
+        <div>
+          <div style={{background:"#fff8e7",border:"3px solid #ffd93d",borderRadius:20,padding:"12px 16px",display:"flex",alignItems:"center",gap:12,marginBottom:18}}>
+            <span style={{fontSize:36}}>{theme.mascot}</span>
+            <span style={{fontFamily:"'Bubblegum Sans',cursive",fontSize:17,color:"#7c4a00"}}>Match left with right! Tap one from each side! 🎉</span>
+          </div>
+          <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:12}}>
+            <div style={{display:"flex",flexDirection:"column",gap:10}}>
+              {lefts.map((l,i)=>{
+                const cls=matched.has(i+"L")?"matched":selL===i?"selected":wrongPair&&wrongPair[0]===i?"wrong":"";
+                return<div key={i} style={getStyle(cls)} onClick={()=>!matched.has(i+"L")&&setSelL(i)}>{l}</div>;
+              })}
+            </div>
+            <div style={{display:"flex",flexDirection:"column",gap:10}}>
+              {rights.map((r,i)=>{
+                const cls=matched.has(i+"R")?"matched":selR===i?"selected":wrongPair&&wrongPair[1]===i?"wrong":"";
+                return<div key={i} style={getStyle(cls)} onClick={()=>!matched.has(i+"R")&&setSelR(i)}>{r}</div>;
+              })}
+            </div>
+          </div>
+        </div>
+      );
+    }
+
+    // ── Quiz ──
+    function Quiz({ group, subject, onXP, onBadge }) {
+      const theme=THEMES[group];
+      const xpEach=group==="upper"?15:group==="mid"?10:5;
+      const qs=(QUIZ[group]||QUIZ.mid).slice(0,group==="upper"?5:group==="mid"?4:3);
+      const [ci,setCi]=useState(0);
+      const [sel,setSel]=useState(null);
+      const [ans,setAns]=useState(false);
+      const [score,setScore]=useState(0);
+      const [done,setDone]=useState(false);
+      const [hint,setHint]=useState(false);
+      const [conf,setConf]=useState(false);
+
+      const pick=(i)=>{if(ans)return;setSel(i);setAns(true);if(i===qs[ci].a)setScore(s=>s+1);};
+      const next=()=>{
+        if(ci+1>=qs.length){
+          const final=score+(sel===qs[ci].a?1:0);
+          onXP(final*xpEach);onBadge("first");
+          if(final===qs.length){onBadge("perfect");setConf(true);setTimeout(()=>setConf(false),3500);}
+          setDone(true);
+        } else {setCi(c=>c+1);setSel(null);setAns(false);setHint(false);}
+      };
+      const reset=()=>{setCi(0);setSel(null);setAns(false);setScore(0);setDone(false);setConf(false);setHint(false);};
+
+      if(done){
+        const stars=score>=qs.length?3:score>=qs.length*.6?2:1;
+        return(
+          <div style={{textAlign:"center",padding:"28px 16px"}}>
+            <Confetti on={conf}/>
+            <div style={{fontFamily:"'Baloo 2',cursive",fontSize:72,fontWeight:800,color:theme.primary}}>{score}/{qs.length}</div>
+            <div style={{fontSize:34,letterSpacing:4,margin:"8px 0"}}>{"⭐".repeat(stars)}{"☆".repeat(3-stars)}</div>
+            <div style={{fontWeight:900,fontSize:18,marginBottom:6}}>{score===qs.length?"🎉 Perfect!":score>=qs.length*.6?"👍 Great Job!":"📚 Keep Practicing!"}</div>
+            <div style={{display:"inline-block",background:"linear-gradient(135deg,#fcd34d,#f97316)",color:"#fff",fontWeight:900,padding:"7px 20px",borderRadius:20,fontSize:15,margin:"10px 0"}}>+{score*xpEach} XP Earned!</div>
+            <br/>
+            <button onClick={reset} style={{marginTop:14,background:theme.primary,color:"#fff",border:"none",padding:"10px 28px",borderRadius:12,fontFamily:"Nunito,sans-serif",fontWeight:900,cursor:"pointer",fontSize:14}}>Try Again 🔄</button>
+          </div>
+        );
+      }
+
+      const q=qs[ci];
+      const correct=ans&&sel===q.a;
+      return(
+        <div>
+          <Confetti on={conf}/>
+          <div style={{display:"flex",alignItems:"center",gap:10,marginBottom:14}}>
+            <span style={{fontWeight:800,fontSize:12,color:"#94a3b8"}}>Q{ci+1}/{qs.length}</span>
+            <div style={{flex:1,height:7,background:"#e5e7eb",borderRadius:99,overflow:"hidden"}}>
+              <div style={{height:"100%",background:`linear-gradient(90deg,${theme.primary},#a78bfa)`,borderRadius:99,width:`${(ci/qs.length)*100}%`,transition:"width .4s"}}/>
+            </div>
+            <span style={{fontWeight:800,fontSize:12,color:"#f59e0b"}}>🏆 {score}</span>
+          </div>
+          {group==="early"&&(
+            <div style={{background:"#fff8e7",border:"3px solid #ffd93d",borderRadius:20,padding:"12px 16px",display:"flex",alignItems:"center",gap:12,marginBottom:14}}>
+              <span style={{fontSize:36}}>{theme.mascot}</span>
+              <span style={{fontFamily:"'Bubblegum Sans',cursive",fontSize:17,color:"#7c4a00"}}>Question {ci+1}! You can do it! 💪</span>
+            </div>
+          )}
+          {group==="upper"&&q.e&&(
+            <div style={{background:"#f5f3ff",border:"1.5px solid #ddd6fe",borderRadius:10,padding:"10px 14px",fontSize:13,fontWeight:700,color:"#5b21b6",marginBottom:10}}>
+              🧠 Think carefully before answering…
+            </div>
+          )}
+          <div style={{background:group==="early"?"linear-gradient(135deg,#fff8e7,#fff0e0)":"linear-gradient(135deg,#eef2ff,#f5f3ff)",borderLeft:`5px solid ${theme.primary}`,borderRadius:14,padding:"16px 18px",marginBottom:14,fontWeight:900,fontSize:group==="early"?24:17,fontFamily:group==="early"?"'Bubblegum Sans',cursive":"Nunito,sans-serif",lineHeight:1.4}}>
+            {q.q}
+          </div>
+          {group==="mid"&&q.h&&!ans&&(
+            <button onClick={()=>setHint(true)} style={{background:"#fffbeb",color:"#92400e",border:"1.5px solid #fde68a",borderRadius:10,padding:"6px 14px",fontFamily:"Nunito,sans-serif",fontWeight:800,cursor:"pointer",fontSize:13,marginBottom:10}}>💡 Need a hint?</button>
+          )}
+          {hint&&<div style={{background:"#fffbeb",border:"1.5px solid #fde68a",borderRadius:10,padding:"10px 14px",fontSize:13,fontWeight:700,color:"#92400e",marginBottom:10}}>💡 {q.h}</div>}
+          <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10}}>
+            {q.o.map((opt,i)=>{
+              const isOk=ans&&i===q.a;
+              const isNo=ans&&sel===i&&i!==q.a;
+              return(
+                <button key={i} disabled={ans} onClick={()=>pick(i)} style={{padding:group==="early"?"18px 12px":"13px 16px",border:`2.5px solid ${isOk?"#22c55e":isNo?"#ef4444":"#e2e8f0"}`,borderRadius:12,cursor:"pointer",fontWeight:700,background:isOk?"#f0fdf4":isNo?"#fef2f2":"#fff",color:isOk?"#15803d":isNo?"#dc2626":"inherit",textAlign:"left",transition:"all .18s",fontFamily:"Nunito,sans-serif",fontSize:group==="early"?20:14,width:"100%"}}>
+                  {group!=="early"&&<span style={{opacity:.4,marginRight:7}}>{"ABCD"[i]}.</span>}{opt}
+                </button>
+              );
+            })}
+          </div>
+          {ans&&<div style={{textAlign:"center",padding:12,borderRadius:12,fontWeight:900,fontSize:group==="early"?22:14,marginTop:10,background:correct?"#dcfce7":"#fee2e2",color:correct?"#15803d":"#dc2626",fontFamily:group==="early"?"'Bubblegum Sans',cursive":"Nunito,sans-serif"}}>
+            {correct?(group==="early"?`🎉 Yay! Correct! +${xpEach} XP`:`✅ Correct! +${xpEach} XP`):(group==="early"?"😅 Oops! Try next!": `❌ Answer: ${q.o[q.a]}`)}
+          </div>}
+          {ans&&group==="upper"&&q.e&&<div style={{background:"#f0fdf4",border:"1.5px solid #bbf7d0",borderRadius:10,padding:"10px 14px",fontSize:13,fontWeight:700,color:"#15803d",marginTop:8}}>📖 {q.e}</div>}
+          {ans&&<button onClick={next} style={{display:"block",margin:"12px auto 0",background:theme.primary,color:"#fff",border:"none",padding:"10px 28px",borderRadius:12,fontFamily:"Nunito,sans-serif",fontWeight:900,cursor:"pointer",fontSize:14}}>{ci+1>=qs.length?"See Results →":"Next →"}</button>}
+        </div>
+      );
+    }
+
+    // ── Word Scramble ──
+    function WordScramble({ theme, onXP, onBadge }) {
+      const [qi,setQi]=useState(0);
+      const curr=SCRAMBLES[qi];
+      const scramble=(w)=>{const a=w.split("");for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]];}return a.join("")===w?scramble(w):a;};
+      const [letters,setLetters]=useState(()=>scramble(curr.w).map((l,i)=>({l,i,used:false})));
+      const [placed,setPlaced]=useState([]);
+      const [solved,setSolved]=useState(false);
+      const [wrong,setWrong]=useState(false);
+
+      const pick=(item)=>{if(item.used)return;setLetters(p=>p.map(x=>x.i===item.i?{...x,used:true}:x));setPlaced(p=>[...p,item]);};
+      const remove=(item,idx)=>{setPlaced(p=>p.filter((_,i)=>i!==idx));setLetters(p=>p.map(x=>x.i===item.i?{...x,used:false}:x));};
+      const check=()=>{
+        if(placed.map(x=>x.l).join("")===curr.w){setSolved(true);onXP(20);onBadge("wordwiz");}
+        else{setWrong(true);setTimeout(()=>setWrong(false),600);}
+      };
+      const next=()=>{const ni=(qi+1)%SCRAMBLES.length;setQi(ni);setLetters(scramble(SCRAMBLES[ni].w).map((l,i)=>({l,i,used:false})));setPlaced([]);setSolved(false);setWrong(false);};
+
+      return(
+        <div>
+          <div style={{textAlign:"center",fontWeight:700,fontSize:13,color:"#94a3b8",marginBottom:10}}>🔤 Hint: {curr.h}</div>
+          <div style={{display:"flex",flexWrap:"wrap",gap:8,justifyContent:"center",marginBottom:16}}>
+            {letters.map(item=>(
+              <div key={item.i} onClick={()=>pick(item)} style={{width:42,height:46,borderRadius:12,display:"flex",alignItems:"center",justifyContent:"center",fontFamily:"'Baloo 2',cursive",fontSize:20,cursor:item.used?"default":"pointer",background:item.used?"#f1f5f9":`linear-gradient(135deg,${theme.primary},#a78bfa)`,color:item.used?"#cbd5e1":"#fff",border:item.used?"3px dashed #cbd5e1":"none",boxShadow:item.used?"none":`0 3px 10px ${theme.primary}44`,transition:"all .2s"}}>
+                {item.used?"":item.l}
+              </div>
+            ))}
+          </div>
+          <div style={{textAlign:"center",fontSize:12,color:"#94a3b8",fontWeight:700,marginBottom:6}}>Tap to build your answer ↓</div>
+          <div style={{display:"flex",flexWrap:"wrap",gap:8,justifyContent:"center",minHeight:56,marginBottom:14}}>
+            {Array.from({length:curr.w.length}).map((_,i)=>(
+              <div key={i} onClick={()=>placed[i]&&remove(placed[i],i)} style={{width:42,height:46,borderRadius:12,background:placed[i]?"linear-gradient(135deg,#fcd34d,#f97316)":"#f8fafc",border:placed[i]?"none":"3px dashed #cbd5e1",display:"flex",alignItems:"center",justifyContent:"center",fontFamily:"'Baloo 2',cursive",fontSize:20,color:placed[i]?"#fff":"#cbd5e1",cursor:placed[i]?"pointer":"default",boxShadow:placed[i]?"0 3px 10px #f9731644":"none"}}>
+                {placed[i]?.l||""}
+              </div>
+            ))}
+          </div>
+          {solved?(
+            <div style={{background:"#dcfce7",border:"2px solid #22c55e",borderRadius:12,padding:14,textAlign:"center",fontWeight:900,color:"#15803d"}}>
+              🎉 Correct! <strong>{curr.w}</strong> — +20 XP!<br/>
+              <button onClick={next} style={{marginTop:10,background:theme.primary,color:"#fff",border:"none",padding:"8px 22px",borderRadius:10,fontFamily:"Nunito,sans-serif",fontWeight:900,cursor:"pointer",fontSize:14}}>Next Word →</button>
+            </div>
+          ):(
+            <button onClick={check} style={{display:"block",margin:"0 auto",background:wrong?"#ef4444":"#22c55e",color:"#fff",border:"none",padding:"10px 28px",borderRadius:12,fontFamily:"Nunito,sans-serif",fontWeight:900,cursor:"pointer",fontSize:14,transition:"background .2s"}}>
+              {wrong?"❌ Try Again!":"Check ✓"}
+            </button>
+          )}
+        </div>
+      );
+    }
+
+    // ── Fill in Blank ──
+    function FillBlank({ theme, onXP }) {
+      const [ci,setCi]=useState(0);
+      const [val,setVal]=useState("");
+      const [st,setSt]=useState("idle");
+      const q=FILL[ci];
+      const parts=q.s.split("___");
+      const check=()=>{
+        if(val.trim().toLowerCase()===q.a.toLowerCase()){setSt("ok");onXP(12);setTimeout(()=>{setCi(c=>(c+1)%FILL.length);setVal("");setSt("idle");},1100);}
+        else{setSt("no");setTimeout(()=>setSt("idle"),700);}
+      };
+      return(
+        <div>
+          <div style={{textAlign:"center",fontWeight:800,fontSize:13,color:"#94a3b8",marginBottom:12}}>✏️ Question {ci+1}/{FILL.length}</div>
+          <div style={{background:"#eef2ff",borderRadius:14,padding:"18px 16px",fontWeight:700,fontSize:17,textAlign:"center",marginBottom:14,lineHeight:1.6}}>
+            {parts[0]}<span style={{background:theme.primary,color:"#fff",padding:"2px 14px",borderRadius:8,margin:"0 4px"}}>___</span>{parts[1]}
+          </div>
+          <input value={val} onChange={e=>setVal(e.target.value)} onKeyDown={e=>e.key==="Enter"&&check()} placeholder="Type your answer…"
+            style={{display:"block",margin:"0 auto",padding:"10px 18px",border:`3px solid ${st==="ok"?"#22c55e":st==="no"?"#ef4444":"#e2e8f0"}`,borderRadius:12,fontFamily:"Nunito,sans-serif",fontWeight:800,fontSize:16,textAlign:"center",outline:"none",width:220,background:st==="ok"?"#f0fdf4":st==="no"?"#fef2f2":"#f8fafc"}}/>
+          <div style={{textAlign:"center",fontSize:12,color:"#94a3b8",fontWeight:700,margin:"8px 0"}}>💡 {q.h}</div>
+          <button onClick={check} style={{display:"block",margin:"0 auto",background:theme.primary,color:"#fff",border:"none",padding:"10px 28px",borderRadius:12,fontFamily:"Nunito,sans-serif",fontWeight:900,cursor:"pointer",fontSize:14}}>Check ✓</button>
+          {st==="ok"&&<div style={{textAlign:"center",fontSize:22,marginTop:10}}>🎉 Correct! +12 XP</div>}
+        </div>
+      );
+    }
+
+    // ── Flashcard ──
+    function Flashcard({ group, theme }) {
+      const cards=FLASH[group==="upper"?"upper":"mid"];
+      const [ci,setCi]=useState(0);
+      const [flipped,setFlipped]=useState(false);
+      return(
+        <div>
+          <div style={{textAlign:"center",fontSize:12,fontWeight:700,color:"#94a3b8",marginBottom:10}}>👆 Tap to flip • {ci+1}/{cards.length}</div>
+          <div style={{perspective:1000,height:180,cursor:"pointer",maxWidth:400,margin:"0 auto"}} onClick={()=>setFlipped(f=>!f)}>
+            <div style={{width:"100%",height:"100%",position:"relative",transition:"transform .55s",transformStyle:"preserve-3d",transform:flipped?"rotateY(180deg)":"none"}}>
+              {[{back:false,bg:`linear-gradient(135deg,${theme.primary},#a78bfa)`,label:"Question",text:cards[ci].q},
+                {back:true, bg:"linear-gradient(135deg,#22c55e,#16a34a)",label:"Answer",   text:cards[ci].a}].map(({back,bg,label,text})=>(
+                <div key={label} style={{position:"absolute",inset:0,backfaceVisibility:"hidden",borderRadius:18,background:bg,color:"#fff",display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",padding:22,textAlign:"center",transform:back?"rotateY(180deg)":"none"}}>
+                  <div style={{fontSize:10,fontWeight:900,opacity:.6,textTransform:"uppercase",letterSpacing:1,marginBottom:6}}>{label}</div>
+                  <div style={{fontFamily:"'Baloo 2',cursive",fontSize:17,lineHeight:1.35}}>{text}</div>
+                  {!back&&<div style={{fontSize:11,opacity:.6,marginTop:8}}>tap to reveal</div>}
+                </div>
+              ))}
+            </div>
+          </div>
+          <div style={{display:"flex",justifyContent:"center",gap:12,marginTop:14}}>
+            {["‹ Prev","Next ›"].map((lbl,i)=>(
+              <button key={lbl} onClick={()=>{setCi(c=>i===0?(c-1+cards.length)%cards.length:(c+1)%cards.length);setFlipped(false);}}
+                style={{background:"#f1f5f9",color:"#64748b",border:"none",padding:"8px 18px",borderRadius:10,fontFamily:"Nunito,sans-serif",fontWeight:800,cursor:"pointer",fontSize:13}}>
+                {lbl}
+              </button>
+            ))}
+          </div>
+        </div>
+      );
+    }
+
+    // ── Critical Thinking ──
+    function CriticalThinking({ theme, onXP }) {
+      const CT=[
+        {s:"Should mobile phones be allowed in schools for Class 5-6?",
+         opts:["✅ Yes — for research & emergencies","❌ No — distraction & misuse","⚖️ Only under supervision"],
+         reveal:["Phones give quick access to information and connect students with parents during emergencies.",
+                 "Research shows phones reduce academic focus and increase cyberbullying risks.",
+                 "Supervised, purpose-specific use balances educational benefits while reducing distraction."]},
+        {s:"Is it better to study alone or in a group?",
+         opts:["👤 Alone — more focused","👥 Group — more ideas","🔀 Depends on the topic"],
+         reveal:["Solo study suits deep reading and memorisation of complex material.",
+                 "Group study builds communication and reveals gaps in your understanding.",
+                 "Best: solo for complex theory, group study for practice problems and revision."]},
+      ];
+      const [qi,setQi]=useState(0);
+      const [chosen,setChosen]=useState(null);
+      const q=CT[qi%CT.length];
+      return(
+        <div>
+          <div style={{background:"#f5f3ff",border:"2px solid #ddd6fe",borderRadius:14,padding:18,fontWeight:800,fontSize:16,marginBottom:16,lineHeight:1.5}}>{q.s}</div>
+          <div style={{display:"flex",flexDirection:"column",gap:10}}>
+            {q.opts.map((o,i)=>(
+              <div key={i} onClick={()=>{setChosen(i);onXP(15);}}
+                style={{padding:"14px 18px",border:`2.5px solid ${chosen===i?theme.primary:"#e2e8f0"}`,borderRadius:12,cursor:"pointer",fontWeight:700,fontSize:14,background:chosen===i?"#eff6ff":"#fff",transition:"all .2s"}}>
+                {o}
+              </div>
+            ))}
+          </div>
+          {chosen!==null&&(
+            <div style={{background:"#f0fdf4",border:"2px solid #bbf7d0",borderRadius:12,padding:16,marginTop:14,fontSize:14,fontWeight:700,color:"#15803d",lineHeight:1.6}}>
+              📖 {q.reveal[chosen]}<br/>
+              <button onClick={()=>{setQi(q=>q+1);setChosen(null);}} style={{marginTop:12,background:theme.primary,color:"#fff",border:"none",padding:"8px 22px",borderRadius:10,fontFamily:"Nunito,sans-serif",fontWeight:900,cursor:"pointer",fontSize:13}}>Next Scenario →</button>
+            </div>
+          )}
+        </div>
+      );
+    }
+
+    // ── Study Timer ──
+    function StudyTimer() {
+      const [secs,setSecs]=useState(25*60);
+      const [on,setOn]=useState(false);
+      const ref=useRef();
+      useEffect(()=>{
+        if(on)ref.current=setInterval(()=>setSecs(s=>s>0?s-1:0),1000);
+        else clearInterval(ref.current);
+        return()=>clearInterval(ref.current);
+      },[on]);
+      const fmt=s=>`${String(Math.floor(s/60)).padStart(2,"0")}:${String(s%60).padStart(2,"0")}`;
+      return(
+        <div style={{background:"linear-gradient(135deg,#0f172a,#1e3a8a)",borderRadius:20,padding:24,color:"#fff",textAlign:"center"}}>
+          <div style={{fontSize:12,fontWeight:800,opacity:.5,textTransform:"uppercase",letterSpacing:1,marginBottom:6}}>⏱ Pomodoro Focus Timer</div>
+          <div style={{fontFamily:"'Baloo 2',cursive",fontSize:56,color:"#fcd34d",letterSpacing:2}}>{fmt(secs)}</div>
+          <div style={{display:"flex",gap:8,justifyContent:"center",marginTop:12}}>
+            {[{l:on?"⏸ Pause":"▶ Start",fn:()=>setOn(o=>!o)},{l:"↺ Reset",fn:()=>{setOn(false);setSecs(25*60);}},{l:"☕ 5 min",fn:()=>setSecs(5*60)}].map(({l,fn})=>(
+              <button key={l} onClick={fn} style={{background:"rgba(255,255,255,.15)",border:"none",color:"#fff",padding:"8px 16px",borderRadius:10,fontFamily:"Nunito,sans-serif",fontWeight:800,cursor:"pointer",fontSize:13}}>{l}</button>
+            ))}
+          </div>
+        </div>
+      );
+    }
+
+    // ── Chapter View ──
+    function ChapterView({ cls, subject, chapter, onBack, onXP, onBadge }) {
+      const group=getGroup(cls);
+      const theme=THEMES[group];
+      const [tab,setTab]=useState("read");
+
+      const TABS={
+        early:[{k:"read",l:"📚 Read"},{k:"game",l:"🎮 Match"},{k:"quiz",l:"❓ Quiz"}],
+        mid:  [{k:"read",l:"📚 Read"},{k:"quiz",l:"🎯 Quiz"},{k:"scramble",l:"🔤 Scramble"},{k:"fill",l:"✏️ Fill"},{k:"flash",l:"🃏 Cards"}],
+        upper:[{k:"read",l:"📚 Read"},{k:"quiz",l:"📝 Quiz"},{k:"think",l:"🧠 Think"},{k:"flash",l:"🃏 Flash"},{k:"timer",l:"⏱ Focus"}],
+      }[group];
+
+      const notes={
+        early:`${theme.mascot} Let's learn about "${chapter}"!\n\nAsk your teacher if you get stuck.\nPractice every day and you'll get better! ⭐`,
+        mid:`📌 Key Ideas for "${chapter}":\n• This topic builds on what you already know.\n• Practice the activities daily.\n• Connect what you learn to real-life examples.\n• Try the quiz twice — once now, once tomorrow!`,
+        upper:`📖 Study Notes — ${chapter}\n\n• Understand the core theory before attempting problems.\n• Identify the relevant formula and conditions.\n• Practice varied question types: direct, application, assertion-reason.\n• Use flashcards for self-testing before timed quizzes.`,
+      }[group];
+
+      const content={
+        read:(
+          <div>
+            {group==="early"&&(
+              <div style={{background:"#fff8e7",border:"3px solid #ffd93d",borderRadius:20,padding:"12px 16px",display:"flex",alignItems:"center",gap:12,marginBottom:16}}>
+                <span style={{fontSize:36}}>{theme.mascot}</span>
+                <span style={{fontFamily:"'Bubblegum Sans',cursive",fontSize:17,color:"#7c4a00"}}>Let's learn about <strong>{chapter}</strong>! Ready? 🎉</span>
+              </div>
+            )}
+            <div style={{fontSize:15,lineHeight:1.9,color:"#374151",whiteSpace:"pre-line"}}>{notes}</div>
+            <div style={{background:"#eef2ff",borderLeft:`5px solid ${theme.primary}`,borderRadius:12,padding:"14px 16px",margin:"14px 0",fontWeight:700,fontSize:14,color:"#3730a3"}}>
+              🎯 Goal: Master <strong>{chapter}</strong> then test yourself with the activities!
+            </div>
+          </div>
+        ),
+        game:    <MatchingGame theme={theme} onXP={onXP}/>,
+        quiz:    <Quiz group={group} subject={subject} onXP={onXP} onBadge={onBadge}/>,
+        scramble:<WordScramble theme={theme} onXP={onXP} onBadge={onBadge}/>,
+        fill:    <FillBlank theme={theme} onXP={onXP}/>,
+        flash:   <Flashcard group={group} theme={theme}/>,
+        think:   <CriticalThinking theme={theme} onXP={onXP}/>,
+        timer:   <StudyTimer/>,
+      };
+
+      return(
+        <div>
+          <BackBtn onClick={onBack} hoverColor={theme.primary}/>
+          <div style={{background:`linear-gradient(135deg,${theme.primary}18,${theme.sec}18)`,border:`2px solid ${theme.primary}30`,borderRadius:18,padding:"16px 20px",marginBottom:16}}>
+            <div style={{fontSize:11,fontWeight:900,textTransform:"uppercase",color:theme.primary,letterSpacing:1,marginBottom:4}}>Class {cls} · {subject}</div>
+            <div style={{fontFamily:"'Baloo 2',cursive",fontSize:22,fontWeight:800}}>{chapter}</div>
+          </div>
+          <div style={{display:"flex",gap:4,background:"#f1f5f9",borderRadius:12,padding:3,marginBottom:16,flexWrap:"wrap"}}>
+            {TABS.map(t=>(
+              <button key={t.k} onClick={()=>setTab(t.k)} style={{flex:1,minWidth:70,padding:"7px 8px",border:"none",background:tab===t.k?"#fff":"transparent",borderRadius:9,fontFamily:"Nunito,sans-serif",fontWeight:800,fontSize:12,cursor:"pointer",color:tab===t.k?theme.primary:"#94a3b8",boxShadow:tab===t.k?"0 2px 8px rgba(0,0,0,.08)":"none",transition:"all .18s",whiteSpace:"nowrap"}}>
+                {t.l}
+              </button>
+            ))}
+          </div>
+          <div style={{background:"#fff",borderRadius:18,boxShadow:"0 4px 20px rgba(0,0,0,.08)",padding:20}}>{content[tab]}</div>
+        </div>
+      );
+    }
+
+    // ── Subject View ──
+    function SubjectView({ cls, subject, onBack, onChapter, doneChapters }) {
+      const theme=THEMES[getGroup(cls)];
+      const chapters=CHAPTERS[subject]||[];
+      return(
+        <div>
+          <BackBtn onClick={onBack} hoverColor={theme.primary}/>
+          <div style={{marginBottom:18}}>
+            <div style={{fontFamily:"'Baloo 2',cursive",fontSize:24,fontWeight:800}}>{SUBJECTS[subject]} {subject}</div>
+            <div style={{color:"#94a3b8",fontWeight:700,fontSize:13,marginTop:2}}>Class {cls} · {doneChapters.length}/{chapters.length} done</div>
+            <div style={{marginTop:8,height:6,background:"#e5e7eb",borderRadius:99,maxWidth:220,overflow:"hidden"}}>
+              <div style={{height:"100%",background:theme.primary,borderRadius:99,width:`${(doneChapters.length/chapters.length)*100}%`,transition:"width 1s"}}/>
+            </div>
+          </div>
+          <div style={{display:"flex",flexDirection:"column",gap:8}}>
+            {chapters.map((ch,i)=>{
+              const done=doneChapters.includes(ch);
+              return(
+                <div key={ch} onClick={()=>onChapter(ch)}
+                  onMouseOver={e=>{e.currentTarget.style.borderColor=theme.primary;e.currentTarget.style.transform="translateX(3px)";}}
+                  onMouseOut={e=>{e.currentTarget.style.borderColor="transparent";e.currentTarget.style.transform="none";}}
+                  style={{background:"#fff",borderRadius:14,padding:"12px 16px",display:"flex",alignItems:"center",gap:12,cursor:"pointer",border:"2px solid transparent",boxShadow:"0 2px 8px rgba(0,0,0,.06)",transition:"all .2s"}}>
+                  <div style={{width:32,height:32,borderRadius:9,background:`${theme.primary}18`,color:theme.primary,fontWeight:900,fontSize:13,display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>{i+1}</div>
+                  <div style={{flex:1,fontWeight:800,fontSize:14}}>{ch}</div>
+                  {done&&<span style={{fontSize:11,fontWeight:800,background:"#dcfce7",color:"#15803d",padding:"2px 8px",borderRadius:20}}>✓ Done</span>}
+                  <span style={{fontSize:11,fontWeight:800,background:`${theme.primary}18`,color:theme.primary,padding:"2px 8px",borderRadius:20}}>+XP</span>
+                  <span style={{fontSize:14}}>{done?"⭐":"☆"}</span>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      );
+    }
+
+    // ── Class View ──
+    function ClassView({ cls, onBack, onSubject }) {
+      const theme=THEMES[getGroup(cls)];
+      return(
+        <div>
+          <BackBtn onClick={onBack} label="Home" hoverColor={theme.primary}/>
+          <div style={{fontFamily:"'Baloo 2',cursive",fontSize:26,fontWeight:800,marginBottom:4}}>Class {cls} 📚</div>
+          <div style={{color:"#94a3b8",fontWeight:700,fontSize:13,marginBottom:20}}>Choose a subject to start learning</div>
+          <div style={{display:"grid",gridTemplateColumns:"repeat(4,1fr)",gap:12}}>
+            {Object.entries(SUBJECTS).map(([name,icon])=>(
+              <div key={name} onClick={()=>onSubject(name)}
+                onMouseOver={e=>{e.currentTarget.style.borderColor=theme.primary;e.currentTarget.style.transform="translateY(-4px)";e.currentTarget.style.boxShadow="0 8px 24px rgba(0,0,0,.14)";}}
+                onMouseOut={e=>{e.currentTarget.style.borderColor="transparent";e.currentTarget.style.transform="none";e.currentTarget.style.boxShadow="0 3px 12px rgba(0,0,0,.07)";}}
+                style={{background:"#fff",borderRadius:18,padding:18,cursor:"pointer",border:"3px solid transparent",boxShadow:"0 3px 12px rgba(0,0,0,.07)",transition:"all .2s"}}>
+                <div style={{fontSize:30,marginBottom:6}}>{icon}</div>
+                <div style={{fontWeight:900,fontSize:14}}>{name}</div>
+                <div style={{fontSize:12,color:"#94a3b8",fontWeight:600,marginTop:2}}>{CHAPTERS[name]?.length||8} chapters</div>
+                <div style={{height:4,borderRadius:99,background:"#e5e7eb",marginTop:8,overflow:"hidden"}}>
+                  <div style={{height:"100%",borderRadius:99,background:theme.primary,width:"15%"}}/>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      );
+    }
+
+    // ── Profile ──
+    function ProfilePage({ user, xp, streak, badges, onAvatar }) {
+      const theme=THEMES[getGroup(user.cls)];
+      const level=Math.floor(xp/50)+1;
+      return(
+        <div>
+          <div style={{background:`linear-gradient(135deg,${theme.primary},${theme.sec})`,borderRadius:22,padding:26,color:"#fff",textAlign:"center",marginBottom:20}}>
+            <div style={{fontSize:54,marginBottom:8}}>{user.avatar}</div>
+            <div style={{fontFamily:"'Baloo 2',cursive",fontSize:22,fontWeight:800}}>{user.name}</div>
+            <div style={{fontSize:13,opacity:.75,fontWeight:700}}>Class {user.cls} · {theme.label}</div>
+            <div style={{display:"inline-block",background:"#fcd34d",color:"#0f172a",fontWeight:900,fontSize:12,padding:"3px 14px",borderRadius:20,marginTop:6}}>⭐ Level {level}</div>
+          </div>
+          <div style={{display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:10,marginBottom:20}}>
+            {[["💎",xp,"Total XP"],["🔥",streak,"Streak"],["🏅",badges.length,"Badges"]].map(([icon,val,lbl])=>(
+              <div key={lbl} style={{background:"#fff",borderRadius:14,padding:14,textAlign:"center",boxShadow:"0 3px 10px rgba(0,0,0,.07)"}}>
+                <div style={{fontSize:22}}>{icon}</div>
+                <div style={{fontFamily:"'Baloo 2',cursive",fontSize:26,color:theme.primary}}>{val}</div>
+                <div style={{fontSize:11,color:"#94a3b8",fontWeight:700}}>{lbl}</div>
+              </div>
+            ))}
+          </div>
+          <div style={{fontFamily:"'Baloo 2',cursive",fontSize:18,fontWeight:800,marginBottom:10}}>🎨 Change Avatar</div>
+          <div style={{display:"flex",flexWrap:"wrap",gap:8,justifyContent:"center",marginBottom:20}}>
+            {AVATARS.map(a=>(
+              <div key={a} onClick={()=>onAvatar(a)} style={{width:48,height:48,borderRadius:"50%",background:user.avatar===a?"#eef2ff":"#f1f5f9",border:`3px solid ${user.avatar===a?theme.primary:"transparent"}`,fontSize:26,display:"flex",alignItems:"center",justifyContent:"center",cursor:"pointer",transition:"all .2s",transform:user.avatar===a?"scale(1.1)":"scale(1)"}}>
+                {a}
+              </div>
+            ))}
+          </div>
+          <div style={{fontFamily:"'Baloo 2',cursive",fontSize:18,fontWeight:800,marginBottom:10}}>🏅 Badges</div>
+          <div style={{display:"grid",gridTemplateColumns:"repeat(4,1fr)",gap:10}}>
+            {BADGES_DEF.map(b=>(
+              <div key={b.id} style={{background:"#fff",borderRadius:14,padding:"13px 10px",textAlign:"center",boxShadow:"0 2px 8px rgba(0,0,0,.06)",border:`2px solid ${badges.includes(b.id)?"#f59e0b":"transparent"}`,opacity:badges.includes(b.id)?1:0.4,filter:badges.includes(b.id)?"none":"grayscale(.8)"}}>
+                <div style={{fontSize:26,marginBottom:4}}>{b.icon}</div>
+                <div style={{fontWeight:900,fontSize:11}}>{b.name}</div>
+                <div style={{fontSize:10,color:"#94a3b8",fontWeight:600,marginTop:2}}>{b.desc}</div>
+              </div>
+            ))}
+          </div>
+        </div>
+      );
+    }
+
+    // ── Leaderboard ──
+    function Leaderboard({ myXP, myName, myAvatar }) {
+      const fake=[{n:"Priya S.",a:"🦄",xp:340},{n:"Arjun K.",a:"🦁",xp:295},{n:"Meera R.",a:"🐬",xp:260},{n:"Rohan T.",a:"🐯",xp:215},{n:"Ananya M.",a:"🦋",xp:180}];
+      const all=[...fake,{n:myName||"You",a:myAvatar||"🐸",xp:myXP,me:true}].sort((a,b)=>b.xp-a.xp).slice(0,7);
+      const medals=["🥇","🥈","🥉"];
+      return(
+        <div>
+          <div style={{fontFamily:"'Baloo 2',cursive",fontSize:22,fontWeight:800,marginBottom:16}}>🏆 Leaderboard</div>
+          {all.map((p,i)=>(
+            <div key={i} style={{background:p.me?"#eef2ff":"#fff",border:`2px solid ${p.me?"#6c63ff":"transparent"}`,borderRadius:13,padding:"12px 16px",display:"flex",alignItems:"center",gap:12,marginBottom:8,boxShadow:"0 2px 8px rgba(0,0,0,.06)"}}>
+              <div style={{fontFamily:"'Baloo 2',cursive",fontSize:18,width:28,textAlign:"center"}}>{medals[i]||`#${i+1}`}</div>
+              <div style={{fontSize:22}}>{p.a}</div>
+              <div style={{flex:1,fontWeight:800,fontSize:14}}>{p.n}{p.me?" (You)":""}</div>
+              <div style={{fontFamily:"'Baloo 2',cursive",fontSize:17,color:"#6c63ff"}}>{p.xp} XP</div>
+            </div>
+          ))}
+        </div>
+      );
+    }
+
+    // ── Home ──
+    function HomePage({ user, xp, streak, onClass }) {
+      const group=getGroup(user.cls);
+      const theme=THEMES[group];
+      const level=Math.floor(xp/50)+1;
+      const xpLv=xp%50;
+      const greet={early:`Hi ${user.name}! ${theme.mascot} Let's play and learn today! 🎉`,mid:`Welcome back, ${user.name}! Complete missions & level up! 🚀`,upper:`Welcome, ${user.name}. Master topics & top the leaderboard. 🎓`}[group];
+      return(
+        <div>
+          <div style={{background:`linear-gradient(135deg,${theme.primary},${theme.sec})`,borderRadius:24,padding:"36px 28px",marginBottom:28,position:"relative",overflow:"hidden",color:"#fff"}}>
+            <div style={{position:"absolute",top:-50,right:-50,width:200,height:200,background:"rgba(255,255,255,.07)",borderRadius:"50%"}}/>
+            <div style={{fontFamily:"'Baloo 2',cursive",fontSize:30,fontWeight:800,marginBottom:8}}>Smart <span style={{color:"#ffd93d"}}>CBSE</span> Hub</div>
+            <div style={{fontSize:15,opacity:.85,marginBottom:18,maxWidth:420}}>{greet}</div>
+            <div style={{display:"flex",gap:14,flexWrap:"wrap",marginBottom:18}}>
+              {[["⭐",xp,"XP"],["🔥",streak,"Streak"],["🏅",`Lv.${level}`,"Level"]].map(([icon,val,lbl])=>(
+                <div key={lbl} style={{background:"rgba(255,255,255,.18)",border:"1px solid rgba(255,255,255,.25)",borderRadius:12,padding:"8px 16px",textAlign:"center"}}>
+                  <div style={{fontSize:18}}>{icon}</div>
+                  <div style={{fontFamily:"'Baloo 2',cursive",fontSize:22,fontWeight:800}}>{val}</div>
+                  <div style={{fontSize:10,opacity:.65,fontWeight:800,textTransform:"uppercase"}}>{lbl}</div>
+                </div>
+              ))}
+            </div>
+            <div style={{maxWidth:260}}>
+              <div style={{display:"flex",justifyContent:"space-between",fontSize:11,opacity:.65,fontWeight:800,marginBottom:4}}><span>Level {level}</span><span>{xpLv}/50 XP</span></div>
+              <div style={{height:8,background:"rgba(255,255,255,.25)",borderRadius:99,overflow:"hidden"}}>
+                <div style={{height:"100%",background:"rgba(255,255,255,.8)",borderRadius:99,width:`${(xpLv/50)*100}%`,transition:"width .8s"}}/>
+              </div>
+            </div>
+          </div>
+          <div style={{fontFamily:"'Baloo 2',cursive",fontSize:20,fontWeight:800,marginBottom:14}}>📖 Select Your Class</div>
+          <div style={{display:"grid",gridTemplateColumns:"repeat(6,1fr)",gap:12}}>
+            {[1,2,3,4,5,6].map(c=>(
+              <div key={c} onClick={()=>onClass(c)}
+                onMouseOver={e=>{e.currentTarget.style.transform="translateY(-5px) scale(1.05)";e.currentTarget.style.borderColor=theme.primary;}}
+                onMouseOut={e=>{e.currentTarget.style.transform="none";e.currentTarget.style.borderColor=user.cls===c?theme.primary:"transparent";}}
+                style={{background:"#fff",borderRadius:20,padding:"18px 8px",textAlign:"center",cursor:"pointer",border:`3px solid ${user.cls===c?theme.primary:"transparent"}`,boxShadow:"0 3px 12px rgba(0,0,0,.08)",transition:"all .22s"}}>
+                <div style={{fontFamily:"'Baloo 2',cursive",fontSize:30,fontWeight:800,color:theme.primary}}>{c}</div>
+                <div style={{fontSize:11,fontWeight:800,color:"#94a3b8",textTransform:"uppercase"}}>Class</div>
+              </div>
+            ))}
+          </div>
+        </div>
+      );
+    }
+
+    // ── Auth ──
+    function Auth({ onLogin }) {
+      const [step,setStep]=useState("login");
+      const [name,setName]=useState("");
+      const [avatar,setAvatar]=useState("🦁");
+      const [cls,setCls]=useState(3);
+      const [email,setEmail]=useState("");
+      const [pass,setPass]=useState("");
+      const [role,setRole]=useState("student");
+      const theme=THEMES[getGroup(cls)];
+      const grad=`linear-gradient(135deg,${theme.primary},${theme.sec})`;
+      const inp={width:"100%",padding:"11px 14px",border:"2.5px solid #e2e8f0",borderRadius:11,fontFamily:"Nunito,sans-serif",fontSize:14,outline:"none",background:"#f8fafc"};
+
+      if(step==="avatar") return(
+        <div style={{minHeight:"100vh",display:"flex",alignItems:"center",justifyContent:"center",background:grad,padding:20}}>
+          <div style={{background:"#fff",borderRadius:24,padding:"36px 28px",width:"100%",maxWidth:400,boxShadow:"0 20px 60px rgba(0,0,0,.2)"}}>
+            <div style={{fontFamily:"'Baloo 2',cursive",fontSize:26,fontWeight:800,color:theme.primary,textAlign:"center",marginBottom:6}}>Pick Your Avatar 🎨</div>
+            <div style={{textAlign:"center",color:"#94a3b8",fontSize:14,fontWeight:600,marginBottom:16}}>Choose your character!</div>
+            <div style={{display:"flex",flexWrap:"wrap",gap:8,justifyContent:"center",marginBottom:16}}>
+              {AVATARS.map(a=><div key={a} onClick={()=>setAvatar(a)} style={{width:50,height:50,borderRadius:"50%",background:avatar===a?"#eef2ff":"#f1f5f9",border:`3px solid ${avatar===a?theme.primary:"transparent"}`,fontSize:28,display:"flex",alignItems:"center",justifyContent:"center",cursor:"pointer",transition:"all .2s"}}>{a}</div>)}
+            </div>
+            <div style={{fontWeight:800,fontSize:13,textAlign:"center",marginBottom:8}}>Which class are you in?</div>
+            <div style={{display:"flex",gap:7,flexWrap:"wrap",justifyContent:"center",marginBottom:16}}>
+              {[1,2,3,4,5,6].map(c=><button key={c} onClick={()=>setCls(c)} style={{width:44,height:44,borderRadius:11,border:`2.5px solid ${cls===c?theme.primary:"#e2e8f0"}`,background:cls===c?"#eef2ff":"#fff",fontFamily:"'Baloo 2',cursive",fontSize:18,cursor:"pointer",color:cls===c?theme.primary:"inherit"}}>{c}</button>)}
+            </div>
+            <button onClick={()=>onLogin({name,avatar,cls,role:"student",email:`${name.toLowerCase().replace(/ /g,"")}@cbse.in`})} style={{width:"100%",background:theme.primary,color:"#fff",border:"none",padding:14,borderRadius:13,fontFamily:"Nunito,sans-serif",fontWeight:900,fontSize:15,cursor:"pointer"}}>Start Learning! 🚀</button>
+          </div>
+        </div>
+      );
+
+      if(step==="signup") return(
+        <div style={{minHeight:"100vh",display:"flex",alignItems:"center",justifyContent:"center",background:grad,padding:20}}>
+          <div style={{background:"#fff",borderRadius:24,padding:"36px 28px",width:"100%",maxWidth:400,boxShadow:"0 20px 60px rgba(0,0,0,.2)"}}>
+            <div style={{fontFamily:"'Baloo 2',cursive",fontSize:26,fontWeight:800,color:theme.primary,textAlign:"center",marginBottom:6}}>🎓 Create Account</div>
+            <div style={{textAlign:"center",color:"#94a3b8",fontSize:14,fontWeight:600,marginBottom:20}}>What's your name?</div>
+            <input value={name} onChange={e=>setName(e.target.value)} placeholder="Your name…" style={{...inp,fontFamily:"'Baloo 2',cursive",fontSize:22,textAlign:"center",marginBottom:14}}/>
+            <button onClick={()=>name&&setStep("avatar")} style={{width:"100%",background:theme.primary,color:"#fff",border:"none",padding:14,borderRadius:13,fontFamily:"Nunito,sans-serif",fontWeight:900,fontSize:15,cursor:"pointer"}}>Continue →</button>
+            <div style={{textAlign:"center",marginTop:14,fontSize:13,fontWeight:700,color:"#94a3b8"}}>Have account? <span onClick={()=>setStep("login")} style={{color:theme.primary,cursor:"pointer",fontWeight:900}}>Sign In</span></div>
+          </div>
+        </div>
+      );
+
+      return(
+        <div style={{minHeight:"100vh",display:"flex",alignItems:"center",justifyContent:"center",background:grad,padding:20}}>
+          <div style={{background:"#fff",borderRadius:24,padding:"36px 28px",width:"100%",maxWidth:400,boxShadow:"0 20px 60px rgba(0,0,0,.2)"}}>
+            <div style={{fontFamily:"'Baloo 2',cursive",fontSize:28,fontWeight:800,color:theme.primary,textAlign:"center",marginBottom:6}}>🎓 Smart CBSE Hub</div>
+            <div style={{textAlign:"center",color:"#94a3b8",fontSize:14,fontWeight:600,marginBottom:22}}>Sign in to continue learning</div>
+            <div style={{display:"flex",gap:7,marginBottom:16}}>
+              {["student","teacher","admin"].map(r=>(
+                <button key={r} onClick={()=>setRole(r)} style={{flex:1,padding:"9px 6px",border:`2.5px solid ${role===r?theme.primary:"#e2e8f0"}`,borderRadius:11,background:role===r?"#eef2ff":"#fff",fontFamily:"Nunito,sans-serif",fontWeight:800,cursor:"pointer",fontSize:13,color:role===r?theme.primary:"#94a3b8"}}>
+                  {r==="student"?"👦":r==="teacher"?"👩‍🏫":"⚙️"} {r[0].toUpperCase()+r.slice(1)}
+                </button>
+              ))}
+            </div>
+            <div style={{marginBottom:12}}><label style={{display:"block",fontWeight:800,fontSize:13,marginBottom:4}}>Email</label><input type="email" value={email} onChange={e=>setEmail(e.target.value)} placeholder="you@email.com" style={inp}/></div>
+            <div style={{marginBottom:12}}><label style={{display:"block",fontWeight:800,fontSize:13,marginBottom:4}}>Password</label><input type="password" value={pass} onChange={e=>setPass(e.target.value)} placeholder="••••••••" style={inp}/></div>
+            <button onClick={()=>(email&&pass)&&onLogin({name:email.split("@")[0],avatar:"🦁",cls:3,role,email})} style={{width:"100%",background:theme.primary,color:"#fff",border:"none",padding:14,borderRadius:13,fontFamily:"Nunito,sans-serif",fontWeight:900,fontSize:15,cursor:"pointer",marginTop:4}}>Sign In →</button>
+            <button onClick={()=>onLogin({name:"Demo Student",avatar:"🐸",cls:3,role:"student",email:"demo@cbse.in"})}
+              onMouseOver={e=>{e.currentTarget.style.background=`${theme.primary}12`;}}
+              onMouseOut={e=>{e.currentTarget.style.background="none";}}
+              style={{display:"block",margin:"10px auto 0",background:"none",border:`1.5px solid ${theme.primary}22`,borderRadius:10,fontFamily:"Nunito,sans-serif",fontWeight:800,cursor:"pointer",fontSize:13,color:theme.primary,padding:"8px 20px",transition:"all .2s"}}>
+              Try as Demo Student
+            </button>
+            <div style={{textAlign:"center",marginTop:12,fontSize:13,fontWeight:700,color:"#94a3b8"}}>New? <span onClick={()=>setStep("signup")} style={{color:theme.primary,cursor:"pointer",fontWeight:900}}>Create Account</span></div>
+          </div>
+        </div>
+      );
+    }
+
+    // ── Root App ──
+    function App() {
+      const [user,setUser]=useState(null);
+      const [xp,setXP]=useState(0);
+      const [streak]=useState(3);
+      const [nav,setNav]=useState("home");
+      const [selCls,setSelCls]=useState(null);
+      const [selSub,setSelSub]=useState(null);
+      const [selCh,setSelCh]=useState(null);
+      const [done,setDone]=useState([]);
+      const [badges,setBadges]=useState([]);
+      const [acts,setActs]=useState(0);
+      const [visited,setVisited]=useState(new Set());
+      const [conf,setConf]=useState(false);
+      const {list:toasts,add}=useToasts();
+
+      const group=user?getGroup(user.cls):"mid";
+      const theme=THEMES[group];
+      const level=Math.floor(xp/50)+1;
+      const xpLv=xp%50;
+
+      const earnBadge=useCallback((id)=>{
+        setBadges(p=>{if(p.includes(id))return p;const b=BADGES_DEF.find(x=>x.id===id);if(b)add(`${b.icon} Badge: ${b.name}!`);return[...p,id];});
+      },[add]);
+
+      const addXP=useCallback((amt)=>{
+        setXP(p=>{const n=p+amt;add(`+${amt} XP! 💫`,"⚡");if(n>=50&&p<50)earnBadge("xp50");if(n>=200&&p<200){earnBadge("xp200");setConf(true);setTimeout(()=>setConf(false),3500);}return n;});
+        setActs(a=>{const n=a+1;if(n===10)earnBadge("scholar");return n;});
+      },[add,earnBadge]);
+
+      const handleSubject=(s)=>{
+        setSelSub(s);setSelCh(null);setNav("sub");
+        setVisited(v=>{const n=new Set(v);n.add(s);if(n.size>=5)earnBadge("explorer");return n;});
+      };
+
+      if(!user) return(
+        <div>
+          <Auth onLogin={u=>{setUser(u);add(`Welcome, ${u.name}! 🎉`,u.avatar);}}/>
+          <div style={{position:"fixed",bottom:18,right:16,zIndex:999,display:"flex",flexDirection:"column",gap:7,pointerEvents:"none"}}>
+            {toasts.map(t=><div key={t.id} style={{background:"#0f172a",color:"#fff",padding:"10px 16px",borderRadius:12,fontWeight:800,fontSize:13,boxShadow:"0 6px 20px rgba(0,0,0,.25)",display:"flex",alignItems:"center",gap:7}}><span>{t.icon}</span>{t.msg}</div>)}
+          </div>
+        </div>
+      );
+
+      const BNAV=[{k:"home",ico:"🏠",lbl:"Home"},{k:"lb",ico:"🏆",lbl:"Ranks"},{k:"profile",ico:user.avatar,lbl:"Me"}];
+
+      const page=()=>{
+        if(nav==="ch")      return <ChapterView cls={selCls} subject={selSub} chapter={selCh} onBack={()=>setNav("sub")} onXP={addXP} onBadge={earnBadge}/>;
+        if(nav==="sub")     return <SubjectView cls={selCls} subject={selSub} doneChapters={done} onBack={()=>setNav("cls")} onChapter={ch=>{setSelCh(ch);setNav("ch");}}/>;
+        if(nav==="cls")     return <ClassView cls={selCls} onBack={()=>setNav("home")} onSubject={handleSubject}/>;
+        if(nav==="profile") return <ProfilePage user={user} xp={xp} streak={streak} badges={badges} onAvatar={a=>setUser(u=>({...u,avatar:a}))}/>;
+        if(nav==="lb")      return <Leaderboard myXP={xp} myName={user.name} myAvatar={user.avatar}/>;
+        return <HomePage user={user} xp={xp} streak={streak} onClass={c=>{setSelCls(c);setNav("cls");}}/>;
+      };
+
+      return(
+        <div style={{minHeight:"100vh",display:"flex",flexDirection:"column",background:theme.bg}}>
+          <Confetti on={conf}/>
+          <nav style={{height:58,display:"flex",alignItems:"center",justifyContent:"space-between",padding:"0 18px",background:`linear-gradient(135deg,${theme.primary},${theme.sec})`,position:"sticky",top:0,zIndex:100,boxShadow:"0 2px 12px rgba(0,0,0,.15)"}}>
+            <div onClick={()=>setNav("home")} style={{fontFamily:"'Baloo 2',cursive",fontSize:20,fontWeight:800,color:"#fff",cursor:"pointer"}}>Smart <span style={{color:"#ffd93d"}}>CBSE</span></div>
+            <div style={{display:"flex",alignItems:"center",gap:8}}>
+              <div style={{background:"rgba(255,100,0,.3)",borderRadius:20,padding:"4px 12px",color:"#ffd93d",fontWeight:800,fontSize:13}}>🔥 {streak}</div>
+              <div style={{background:"rgba(255,255,255,.2)",borderRadius:20,padding:"4px 12px",color:"#fff",fontWeight:800,fontSize:13}}>⭐ {xp} XP</div>
+              <div onClick={()=>setNav("profile")} style={{width:34,height:34,borderRadius:"50%",background:"rgba(255,255,255,.2)",border:"2px solid rgba(255,255,255,.4)",fontSize:18,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center"}}>{user.avatar}</div>
+            </div>
+          </nav>
+          <div style={{height:4,background:`${theme.primary}20`}}>
+            <div style={{height:"100%",background:"linear-gradient(90deg,#ffd93d,#f97316)",width:`${(xpLv/50)*100}%`,transition:"width .6s"}}/>
+          </div>
+          <main style={{flex:1,padding:"24px 16px",maxWidth:980,margin:"0 auto",width:"100%"}}>{page()}</main>
+          <nav style={{background:"#fff",borderTop:"1px solid #f1f5f9",padding:"8px 0",display:"flex",justifyContent:"center",position:"sticky",bottom:0,zIndex:100,boxShadow:"0 -3px 14px rgba(0,0,0,.07)"}}>
+            {BNAV.map(b=>(
+              <button key={b.k} onClick={()=>setNav(b.k)} style={{flex:1,maxWidth:100,background:"none",border:"none",cursor:"pointer",display:"flex",flexDirection:"column",alignItems:"center",gap:2,padding:"4px 0",fontFamily:"Nunito,sans-serif",fontWeight:800,fontSize:10,color:nav===b.k?theme.primary:"#94a3b8",transition:"color .2s"}}>
+                <span style={{fontSize:22}}>{b.ico}</span>{b.lbl}
+              </button>
+            ))}
+          </nav>
+          <div style={{position:"fixed",bottom:70,right:16,zIndex:999,display:"flex",flexDirection:"column",gap:7,pointerEvents:"none"}}>
+            {toasts.map(t=><div key={t.id} style={{background:"#0f172a",color:"#fff",padding:"10px 16px",borderRadius:12,fontWeight:800,fontSize:13,boxShadow:"0 6px 20px rgba(0,0,0,.25)",display:"flex",alignItems:"center",gap:7}}><span>{t.icon}</span>{t.msg}</div>)}
+          </div>
+        </div>
+      );
+    }
+
+    const root = ReactDOM.createRoot(document.getElementById("root"));
+    root.render(<App/>);
+  </script>
+</body>
+</html>
